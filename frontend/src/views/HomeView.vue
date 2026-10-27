@@ -1,7 +1,10 @@
 <template>
+  <TopBar></TopBar>
   <div></div>
 </template>
 
-<script setup></script>
+<script setup lang="ts">
+import TopBar from '@/components/TopBar.vue'
+</script>
 
-<style lang="scss" scoped></style>
+<style scoped></style>
