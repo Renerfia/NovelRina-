@@ -8,21 +8,32 @@
     </div>
 
     <div v-if="!isLoggedIn" class="uis">
-      <button class="signIn">SignIn</button>
-      <button class="signup">SignUp</button>
+      <button class="signIn" type="button" @click="handleSignIn">Sign In</button>
+      <button class="signup" type="button" @click="handleSignUp">Sign Up</button>
     </div>
     <div v-else class="user">
-      <button class="email">{{ user }}</button>
+      <button class="email" type="button">{{ user?.email }}</button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import Button from 'primevue/button'
-import { ref, onMounted } from 'vue'
 import { useAuth } from '@/composables/useAuth'
 
-const { isLoggedIn, user, loading, signInWithEmail, signOut } = useAuth()
+const emit = defineEmits<{
+  (event: 'open-login'): void
+  (event: 'open-register'): void
+}>()
+
+const { isLoggedIn, user } = useAuth()
+
+function handleSignIn() {
+  emit('open-login')
+}
+
+function handleSignUp() {
+  emit('open-register')
+}
 </script>
 
 <style scoped>

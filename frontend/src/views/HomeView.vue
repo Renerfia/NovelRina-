@@ -1,7 +1,7 @@
 <template>
   <div class="home-page">
     <header class="home-header">
-      <TopBar />
+      <TopBar @open-login="openLogin" @open-register="openRegister" />
     </header>
 
     <main class="home-main">
@@ -14,12 +14,14 @@
 
         <Card class="bubble-card card-two">
           <template #title>02 — Little Worlds</template>
-          <template #content>“You can build entire worlds without ever leaving your room.”</template>
+          <template #content
+            >“You can build entire worlds without ever leaving your room.”</template
+          >
           <template #footer>— The daydreamer</template>
         </Card>
 
         <div class="main-button-wrap">
-          <button class="main-button" type="button">
+          <button class="main-button" type="button" @click="openRegister">
             <span>Ready to write?</span>
           </button>
         </div>
@@ -50,12 +52,37 @@
         <small>© 2026 NovelRina. Made for the love of stories.</small>
       </footer>
     </main>
+
+    <LoginDialog
+      v-if="activeAuthDialog === 'login'"
+      @close="activeAuthDialog = null"
+      @switch-register="activeAuthDialog = 'register'"
+    />
+    <RegisterDialog
+      v-if="activeAuthDialog === 'register'"
+      @close="activeAuthDialog = null"
+      @switch-login="activeAuthDialog = 'login'"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import TopBar from '@/components/TopBar.vue'
-import { Card } from 'primevue'
+import LoginDialog from '@/components/LoginDialog.vue'
+import RegisterDialog from '@/components/RegisterDialog.vue'
+import Card from 'primevue/card'
+
+const activeAuthDialog = ref<'login' | 'register' | null>(null)
+
+function openLogin() {
+  activeAuthDialog.value = 'login'
+}
+
+function openRegister() {
+  activeAuthDialog.value = 'register'
+}
+
 </script>
 
 <style scoped>
@@ -88,8 +115,7 @@ import { Card } from 'primevue'
   inset: 0;
   content: '';
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.36), transparent 48%),
-    rgba(232, 233, 235, 0.58);
+    linear-gradient(135deg, rgba(255, 255, 255, 0.36), transparent 48%), rgba(232, 233, 235, 0.58);
   backdrop-filter: blur(4px);
 }
 

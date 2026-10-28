@@ -97,3 +97,20 @@ The design color variables are defined in `src/assets/base.css` and are imported
 - Desktop layout: A three-column grid places two cards on each side of the center button.
 - Mobile layout: Below `780px`, cards and the main button stack in one column, preserving the visual order and theme.
 - Reduced motion: Floating transitions are disabled when the user requests reduced motion.
+
+## Authentication Dialogs
+
+- Sources: `src/components/LoginDialog.vue` and `src/components/RegisterDialog.vue`
+- State owner: `HomeView.vue` owns one `activeAuthDialog` value: `null`, `login`, or `register`.
+- Dialog behavior: PrimeVue `Dialog` provides modal positioning and mobile sizing. Each child is mounted only when active and is rendered with `:visible="true"`.
+- Background interaction: The dialog backdrop does not dismiss the dialog because `dismissable-mask` is disabled; the custom close button emits `close`.
+- Desktop size: Dialog width is limited to `420px` and uses the same rounded glass styling as the home panel.
+- Mobile size: Dialog width is `94vw`, with reduced header and content padding below `480px`.
+- Login and register forms: Plain labeled inputs keep the implementation easy to understand while Supabase handles authentication.
+- Top-bar connection: `TopBar.vue` has named `handleSignIn()` and `handleSignUp()` functions. Each handler emits an event to `HomeView.vue`, which sets `activeAuthDialog` to the matching value.
+- Dialog switching: The login dialog emits `switch-register`; the register dialog emits `switch-login`. `HomeView.vue` changes the single active state, so only one dialog is mounted.
+- Close communication: The custom close button calls a simple `closeDialog()` function in each component. Each component emits a function-style `close` event after the close button or successful login; `HomeView.vue` sets the active dialog to `null`. The dialog components do not receive a visible prop or forward PrimeVue `update:visible` events.
+- Main button connection: The center `Ready to write?` button opens the registration dialog.
+- Authentication colors: Dialogs use a dark glass-gray background, white text and labels, white borders, and white glow accents.
+- Dialog header: The NovelRina logo appears beside the dialog title at the top of the login and registration dialogs, with a circular custom close button on the right.
+- Form boxes: Email and password inputs use a square-style `4px` corner radius and a translucent dark-gray glass background.
