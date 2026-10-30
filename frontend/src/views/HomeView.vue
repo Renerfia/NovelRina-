@@ -21,7 +21,7 @@
         </Card>
 
         <div class="main-button-wrap">
-          <button class="main-button" type="button" @click="openRegister">
+          <button class="main-button" type="button" @click="redirectToNovelsView">
             <span>Ready to write?</span>
           </button>
         </div>
@@ -72,6 +72,7 @@ import TopBar from '@/components/TopBar.vue'
 import LoginDialog from '@/components/LoginDialog.vue'
 import RegisterDialog from '@/components/RegisterDialog.vue'
 import Card from 'primevue/card'
+import router from '@/router'
 
 const activeAuthDialog = ref<'login' | 'register' | null>(null)
 
@@ -83,6 +84,9 @@ function openRegister() {
   activeAuthDialog.value = 'register'
 }
 
+function redirectToNovelsView() {
+  router.push('/novels')
+}
 </script>
 
 <style scoped>
