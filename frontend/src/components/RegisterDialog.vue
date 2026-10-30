@@ -76,6 +76,7 @@ import { useAuth } from '@/composables/useAuth'
 const emit = defineEmits<{
   (event: 'close'): void
   (event: 'switch-login'): void
+  (event: 'reload'): void
 }>()
 
 const { signUpWithEmail } = useAuth()
@@ -115,6 +116,7 @@ async function register() {
     password.value = ''
     confirmPassword.value = ''
     emit('close')
+    emit('reload')
     return
   }
 

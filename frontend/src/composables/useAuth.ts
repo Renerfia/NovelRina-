@@ -1,17 +1,6 @@
 import { computed, ref } from 'vue'
-import { createClient, type Session } from '@supabase/supabase-js'
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseKey =
-  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_PUBLIC_KEY
-
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error(
-    'Missing Supabase environment variables. Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY.',
-  )
-}
-
-export const supabase = createClient(supabaseUrl, supabaseKey)
+import type { Session } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabase'
 
 const session = ref<Session | null>(null)
 const user = computed(() => session.value?.user ?? null)
