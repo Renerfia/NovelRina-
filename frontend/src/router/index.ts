@@ -3,6 +3,7 @@ import HomeView from '../views/HomeView.vue'
 import NovelsView from '@/views/NovelsView.vue'
 import { useAuth } from '@/composables/useAuth'
 import { watch } from 'vue'
+import NovelDetails from '@/views/NovelDetails.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -16,6 +17,14 @@ const router = createRouter({
       path: '/novels',
       name: 'novels',
       component: NovelsView,
+      meta: {
+        requiresAuth: true,
+      },
+    },
+    {
+      path: '/novels/:id',
+      name: 'novel-details',
+      component: NovelDetails,
       meta: {
         requiresAuth: true,
       },

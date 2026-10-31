@@ -57,11 +57,13 @@
       v-if="activeAuthDialog === 'login'"
       @close="activeAuthDialog = null"
       @switch-register="activeAuthDialog = 'register'"
+      @reload="reloadWindow"
     />
     <RegisterDialog
       v-if="activeAuthDialog === 'register'"
       @close="activeAuthDialog = null"
       @switch-login="activeAuthDialog = 'login'"
+      @reload="reloadWindow"
     />
   </div>
 </template>
@@ -86,6 +88,10 @@ function openRegister() {
 
 function redirectToNovelsView() {
   router.push('/novels')
+}
+
+function reloadWindow() {
+  window.location.reload()
 }
 </script>
 

@@ -7,6 +7,11 @@ export interface Novel {
   description?: string | null
 }
 
+interface CreateNovelInput {
+  novel_name: string
+  description?: string
+}
+
 const novels = ref<Novel[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
@@ -39,7 +44,7 @@ export function useNovels() {
     }
   }
 
-  async function createNovel(novel: any) {
+  async function createNovel(novel: CreateNovelInput) {
     loading.value = true
     error.value = null
 
@@ -95,6 +100,8 @@ export function useNovels() {
 
   return {
     fetchNovels,
+    createNovel,
+    deleteNovel,
     novels,
     loading,
     error,

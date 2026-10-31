@@ -98,7 +98,7 @@ function handleSignUp() {
 .user {
   display: flex;
   justify-content: flex-end;
-  margin-top: 12px;
+  margin-left: auto;
 }
 
 .user .email {

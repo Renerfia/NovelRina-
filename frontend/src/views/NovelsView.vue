@@ -10,30 +10,51 @@
         <h2>Novels</h2>
       </div>
 
+      <button class="create" type="button" @click="showCreateDialog = true">Create Novel</button>
+
+      <CreateNovel
+        :visible="showCreateDialog"
+        @close="showCreateDialog = false"
+        @new-novel="handleCreateNovel"
+      />
+
       <p v-if="loading" class="novels-status">Loading novels…</p>
       <p v-else-if="error" class="novels-status novels-status--error">{{ error }}</p>
-      <p v-else-if="novels.length === 0" class="novels-status">
-        No novels found yet.
-      </p>
-
+      <p v-else-if="novels.length === 0" class="novels-status">No novels found yet.</p>
       <section v-else class="novels-grid" aria-label="Novel library">
-        <NovelCard
-          v-for="novel in novels"
-          :key="novel.novel_id"
-          :novel="novel"
-        />
+        <NovelCard v-for="novel in novels" :key="novel.novel_id" :novel="novel" @open="openNovel" />
       </section>
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import TopBar from '@/components/TopBar.vue'
 import NovelCard from '@/components/NovelCard.vue'
+import CreateNovel from '@/components/CreateNovel.vue'
 import { useNovels } from '@/composables/useNovels'
+import { useRoute } from 'vue-router'
 
-const { novels, loading, error, fetchNovels } = useNovels()
+const router = useRouter()
+
+const { novels, loading, error, fetchNovels, createNovel } = useNovels()
+const showCreateDialog = ref(false)
+
+async function handleCreateNovel(novel: { novel_name: string; description: string }) {
+  const result = await createNovel(novel)
+
+  if (!result.error) {
+    showCreateDialog.value = false
+  }
+}
+
+function openNovel(novelId: string) {
+  void router.push({
+    name: 'novel-details',
+    params: { id: novelId },
+  })
+}
 
 onMounted(() => {
   void fetchNovels()
@@ -59,6 +80,7 @@ onMounted(() => {
 }
 
 .novels-main {
+  position: relative;
   width: 100%;
   max-width: 1240px;
   min-height: calc(100vh - 116px);
@@ -91,6 +113,27 @@ onMounted(() => {
   margin-top: 2px;
   font-size: clamp(1.8rem, 4vw, 2.5rem);
   font-weight: 700;
+}
+
+.create {
+  position: absolute;
+  right: 34px;
+  bottom: 34px;
+  border: 1px solid rgba(36, 38, 41, 0.08);
+  border-radius: 999px;
+  background: var(--color-snow-white);
+  box-shadow: 0 4px 14px rgba(36, 38, 41, 0.12);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 12px 18px;
+}
+
+.create:hover {
+  background: #ffffff;
+  box-shadow: 0 0 12px var(--color-glow);
+  transform: translateY(-1px);
 }
 
 .novels-grid {
@@ -130,6 +173,11 @@ onMounted(() => {
   .novels-grid {
     grid-template-columns: 1fr;
     justify-items: center;
+  }
+
+  .create {
+    right: 18px;
+    bottom: 18px;
   }
 }
 </style>
