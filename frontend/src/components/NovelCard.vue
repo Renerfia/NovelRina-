@@ -24,10 +24,9 @@
 <script setup lang="ts">
 import Card from 'primevue/card'
 import { Book } from 'lucide-vue-next'
-import { emit } from 'process'
 
 interface Novel {
-  novel_id: String
+  novel_id: string
   novel_name: string
   description?: string | null
 }

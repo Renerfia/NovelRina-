@@ -34,7 +34,7 @@ import TopBar from '@/components/TopBar.vue'
 import NovelCard from '@/components/NovelCard.vue'
 import CreateNovel from '@/components/CreateNovel.vue'
 import { useNovels } from '@/composables/useNovels'
-import { useRoute } from 'vue-router'
+import { useRouter } from 'vue-router'
 
 const router = useRouter()
 
