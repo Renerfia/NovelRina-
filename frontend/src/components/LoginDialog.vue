@@ -64,6 +64,7 @@ import { useAuth } from '@/composables/useAuth'
 const emit = defineEmits<{
   (event: 'close'): void
   (event: 'switch-register'): void
+  (event: 'reload'): void
 }>()
 
 const { signInWithEmail } = useAuth()
@@ -95,6 +96,7 @@ async function signIn() {
 
   password.value = ''
   emit('close')
+  emit('reload')
 }
 </script>
 

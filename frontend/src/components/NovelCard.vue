@@ -1,6 +1,6 @@
 <template>
   <article class="novel-card">
-    <Card class="novel-card__surface">
+    <Card class="novel-card__surface" @click="$emit('open', novel.novel_id)">
       <template #header>
         <div class="novel-card__art" aria-hidden="true">
           <div class="novel-card__glow"></div>
@@ -26,12 +26,17 @@ import Card from 'primevue/card'
 import { Book } from 'lucide-vue-next'
 
 interface Novel {
+  novel_id: string
   novel_name: string
   description?: string | null
 }
 
 defineProps<{
   novel: Novel
+}>()
+
+defineEmits<{
+  open: [novelId: string]
 }>()
 </script>
 

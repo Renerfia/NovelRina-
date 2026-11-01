@@ -7,6 +7,11 @@ export interface Novel {
   description?: string | null
 }
 
+interface CreateNovelInput {
+  novel_name: string
+  description?: string
+}
+
 const novels = ref<Novel[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
@@ -39,7 +44,33 @@ export function useNovels() {
     }
   }
 
-  async function createNovel(novel: any) {
+  async function fetchNovel(novelId: string) {
+    loading.value = true
+    error.value = null
+
+    try {
+      const { data, error: queryError } = await supabase
+        .from('novels')
+        .select('novel_id, novel_name, description')
+        .eq('novel_id', novelId)
+        .single()
+
+      if (queryError) {
+        error.value = queryError.message
+        return { data: null, error: queryError.message }
+      }
+
+      return { data, error: null }
+    } catch (caughtError) {
+      const message = caughtError instanceof Error ? caughtError.message : 'Failed to fetch novel'
+      error.value = message
+      return { data: null, error: message }
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function createNovel(novel: CreateNovelInput) {
     loading.value = true
     error.value = null
 
@@ -95,6 +126,9 @@ export function useNovels() {
 
   return {
     fetchNovels,
+    fetchNovel,
+    createNovel,
+    deleteNovel,
     novels,
     loading,
     error,
