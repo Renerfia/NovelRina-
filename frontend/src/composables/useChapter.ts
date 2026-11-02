@@ -81,16 +81,17 @@ export function useChapter() {
     }
   }
 
-  /** Update an existing chapter and replace its local copy with the result. */
-  async function updateChapter(chapterId: string, title: string, content: string) {
+  /** Update a chapter only when it belongs to the supplied novel. */
+  async function updateChapter(novelId: string, chapterId: string, title: string, content: string) {
     loading.value = true
     error.value = null
 
     try {
-      // Match the chapter row by its primary key before updating it.
+      // Require both IDs so a chapter from another novel cannot be modified.
       const { data, error: updateError } = await supabase
         .from('chapters')
         .update({ chapter_name: title, chapter_content: content })
+        .eq('novel_id', novelId)
         .eq('chapter_id', chapterId)
         .select('chapter_id, chapter_name, chapter_content, novel_id')
         .single()
@@ -101,7 +102,7 @@ export function useChapter() {
       }
 
       chapters.value = chapters.value.map((chapter) =>
-        chapter.chapter_id === chapterId ? data : chapter,
+        chapter.chapter_id === chapterId && chapter.novel_id === novelId ? data : chapter,
       )
       return { data, error: null }
     } catch (caughtError) {
@@ -115,23 +116,34 @@ export function useChapter() {
     }
   }
 
-  /** Delete a chapter by ID and remove it from local state. */
-  async function deleteChapter(chapterId: string) {
+  /** Delete a chapter only when it belongs to the supplied novel. */
+  async function deleteChapter(novelId: string, chapterId: string) {
     loading.value = true
     error.value = null
 
     try {
-      const { error: deleteError } = await supabase
+      const { data, error: deleteError } = await supabase
         .from('chapters')
         .delete()
+        .eq('novel_id', novelId)
         .eq('chapter_id', chapterId)
+        .select('chapter_id')
+        .single()
 
       if (deleteError) {
         error.value = deleteError.message
         return { success: false, error: deleteError.message }
       }
 
-      chapters.value = chapters.value.filter((chapter) => chapter.chapter_id !== chapterId)
+      if (!data) {
+        const message = 'Chapter does not belong to the supplied novel'
+        error.value = message
+        return { success: false, error: message }
+      }
+
+      chapters.value = chapters.value.filter(
+        (chapter) => !(chapter.chapter_id === chapterId && chapter.novel_id === novelId),
+      )
       return { success: true, error: null }
     } catch (caughtError) {
       const message =

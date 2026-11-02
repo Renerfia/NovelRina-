@@ -7,11 +7,11 @@
       </p>
     </header>
 
-    <p v-if="chapters.length === 0" class="empty-message">No chapters found.</p>
+    <p v-if="!chapters || chapters.length === 0" class="empty-message">No chapters found.</p>
 
     <ul v-else class="chapter-list">
       <li v-for="chapter in chapters" :key="chapter.chapter_id">
-        <button class="chapter-button" type="button">
+        <button class="chapter-button" type="button" @click="emit('selected_chapter', chapter)">
           {{ chapter.chapter_name }}
         </button>
       </li>
@@ -24,8 +24,13 @@ import type { Chapter } from '@/composables/useChapter'
 import type { Novel } from '@/composables/useNovels'
 
 defineProps<{
-  chapters: Chapter[]
+  chapters: Chapter[] | null
   novel: Novel | null
+}>()
+
+const emit = defineEmits<{
+  close: []
+  selected_chapter: [chapter: Chapter]
 }>()
 </script>
 
@@ -56,6 +61,7 @@ defineProps<{
 .chapter-sidebar h2 {
   margin-bottom: 18px;
   color: #ffffff;
+  font-family: var(--font-reading);
   font-size: 1.5rem;
   font-weight: 600;
 }
