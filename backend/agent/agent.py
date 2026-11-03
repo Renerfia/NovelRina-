@@ -61,7 +61,7 @@ model = GoogleEmbeddingModel(
 )
 embedding_agent = Embedder(model)
 
-def get_full_prompt(user_query: str,message_history:list[dict]) -> str:
+def get_full_prompt(user_query: str,message_history:list) -> str:
 
     """Construct the full prompt for the response agent."""
     
