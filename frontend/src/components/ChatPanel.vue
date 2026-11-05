@@ -43,7 +43,7 @@ const emit = defineEmits<{
 }>()
 
 const query = ref('')
-const { history, loading, error, sendMessage } = useChat(props.authorId, props.novelId)
+const { history, loading, error, sendMessage } = useChat(props.novelId)
 
 const canSend = computed(
   () => Boolean(props.novelId) && Boolean(query.value.trim()) && !loading.value,

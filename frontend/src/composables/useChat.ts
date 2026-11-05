@@ -9,10 +9,7 @@ export interface ChatMessage {
   content: string
 }
 
-export function useChat(
-  user_id: MaybeRefOrGetter<string | null>,
-  novelId: MaybeRefOrGetter<string | null>,
-) {
+export function useChat(novelId: MaybeRefOrGetter<string | null>) {
   const { session } = useAuth()
   const history = ref<ChatMessage[]>([])
   const loading = ref(false)
@@ -31,27 +28,32 @@ export function useChat(
   async function sendMessage(query: string) {
     const message = query.trim()
     const currentNovelId = toValue(novelId)
+    const accessToken = session.value?.access_token
 
+    // Validates novel id
     if (!currentNovelId) {
       error.value = 'Novel ID is missing'
       return null
     }
 
+    // Validates message
     if (!message) {
       error.value = 'Message cannot be empty'
       return null
     }
 
-    const accessToken = session.value?.access_token
+    // Validates access token
     if (!accessToken) {
       error.value = 'User is not authenticated'
       return null
     }
 
+    //After passinmg all validations, set loading state and clear previous error
     loading.value = true
     error.value = null
 
     try {
+      // Send the message to the server
       const response = await fetch(
         `${SERVER_URL}/novels/${encodeURIComponent(currentNovelId)}/chat`,
         {
@@ -69,9 +71,10 @@ export function useChat(
 
       if (!response.ok) {
         const body = await response.json().catch(() => null)
-        throw new Error(body?.detail ?? `Request failed: ${response.status}`)
+        throw new Error(body?.detail ?? `Request failed: ${response.status}`) //throws Request failed if we have body.data
       }
 
+      //response returns promise for the json data, we need to await it to get the actual data
       const result = await response.json()
       const agentResponse =
         typeof result === 'string'

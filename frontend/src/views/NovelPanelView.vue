@@ -1,7 +1,12 @@
 <template>
-  <main class="novel-details-page">
+  <main class="novel-panel-page">
+    <BubbleToolMenu
+      :novel-id="novel?.novel_id ?? null"
+      @show-chat-panel="showChatPanel = true"
+    />
+
     <button
-      class="back-button"
+      class="novel-back-button"
       type="button"
       aria-label="Back to novels"
       title="Back to novels"
@@ -16,29 +21,21 @@
       {{ novelError || chapterError }}
     </p>
 
-    <div v-else class="novel-details-layout">
+    <div v-else class="novel-panel-layout">
       <ListChapterSideBar
         :chapters="chapters"
         :novel="novel"
         @selected_chapter="selected_chapter = $event"
       />
 
-      <section class="chapter-panel">
+      <!-- Editor Panel -->
+      <section class="chapter-editor-panel">
         <ChatPanel
           v-if="showChatPanel"
           :authorId="user?.id ?? null"
           :novelId="novel?.novel_id ?? null"
           @close="showChatPanel = false"
         />
-        <button
-          v-if="!showChatPanel"
-          class="chat-toggle"
-          type="button"
-          :disabled="!novel?.novel_id"
-          @click="showChatPanel = true"
-        >
-          Open novel chat
-        </button>
         <SummarizationPanel :chapter="selected_chapter" />
       </section>
     </div>
@@ -56,6 +53,7 @@ import type { Novel } from '@/composables/useNovels'
 import SummarizationPanel from '@/components/SummarizationPanel.vue'
 import type { Chapter } from '@/composables/useChapter'
 import ChatPanel from '@/components/ChatPanel.vue'
+import BubbleToolMenu from '@/components/BubbleToolMenu.vue'
 import { useAuth } from '@/composables/useAuth'
 
 const route = useRoute()
@@ -99,7 +97,7 @@ watch(
 </script>
 
 <style scoped>
-.novel-details-page {
+.novel-panel-page {
   position: relative;
   min-height: 100vh;
   padding: 20px;
@@ -110,7 +108,7 @@ watch(
     linear-gradient(145deg, #171513 0%, #11100f 48%, #090909 100%);
 }
 
-.back-button {
+.novel-back-button {
   position: absolute;
   z-index: 10;
   top: 30px;
@@ -135,18 +133,18 @@ watch(
     transform 0.2s ease;
 }
 
-.back-button svg {
+.novel-back-button svg {
   width: 20px;
   height: 20px;
 }
 
-.back-button:hover {
+.novel-back-button:hover {
   border-color: rgba(255, 244, 224, 0.42);
   background: rgba(255, 255, 255, 0.16);
   transform: translateX(-2px);
 }
 
-.novel-details-layout {
+.novel-panel-layout {
   display: grid;
   grid-template-columns: 280px 1fr;
   min-height: calc(100vh - 40px);
@@ -159,7 +157,7 @@ watch(
     inset 0 1px 0 rgba(255, 244, 224, 0.04);
 }
 
-.chapter-panel {
+.chapter-editor-panel {
   display: grid;
   place-items: center;
   padding: 20px;
@@ -167,29 +165,16 @@ watch(
   background: linear-gradient(145deg, rgba(31, 27, 23, 0.48), rgba(12, 12, 12, 0.62));
 }
 
-.chat-toggle {
-  padding: 10px 16px;
-  color: rgba(255, 255, 255, 0.92);
-  border: 1px solid rgba(255, 244, 224, 0.24);
-  border-radius: 10px;
-  background: rgba(173, 132, 92, 0.28);
-  cursor: pointer;
-}
-
-.chat-toggle:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
-}
 
 @media (max-width: 760px) {
-  .back-button {
+  .novel-back-button {
     top: 22px;
     left: 170px;
     width: 40px;
     height: 40px;
   }
 
-  .novel-details-layout {
+  .novel-panel-layout {
     grid-template-columns: 220px 1fr;
   }
 }
