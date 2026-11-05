@@ -23,7 +23,22 @@
         @selected_chapter="selected_chapter = $event"
       />
 
-      <section class="chapter-content">
+      <section class="chapter-panel">
+        <ChatPanel
+          v-if="showChatPanel"
+          :authorId="user?.id ?? null"
+          :novelId="novel?.novel_id ?? null"
+          @close="showChatPanel = false"
+        />
+        <button
+          v-if="!showChatPanel"
+          class="chat-toggle"
+          type="button"
+          :disabled="!novel?.novel_id"
+          @click="showChatPanel = true"
+        >
+          Open novel chat
+        </button>
         <SummarizationPanel :chapter="selected_chapter" />
       </section>
     </div>
@@ -40,6 +55,8 @@ import { useChapter } from '@/composables/useChapter'
 import type { Novel } from '@/composables/useNovels'
 import SummarizationPanel from '@/components/SummarizationPanel.vue'
 import type { Chapter } from '@/composables/useChapter'
+import ChatPanel from '@/components/ChatPanel.vue'
+import { useAuth } from '@/composables/useAuth'
 
 const route = useRoute()
 const router = useRouter()
@@ -47,7 +64,9 @@ const novel = ref<Novel | null>(null)
 const novelLoading = ref(false)
 const novelError = ref<string | null>(null)
 const selected_chapter = ref<Chapter | null>(null)
+const showChatPanel = ref<boolean>(false)
 
+const { user } = useAuth()
 const { fetchNovel } = useNovels()
 const { chapters, loading: chapterLoading, error: chapterError, fetchChapters } = useChapter()
 
@@ -62,7 +81,7 @@ watch(
 
     selected_chapter.value = null
     novelLoading.value = true
-    const novelResult = await fetchNovel(novelId)
+    const novelResult = await fetchNovel(novelId) //feteches the selected novel details
     novelLoading.value = false
 
     if (novelResult.data) {
@@ -140,12 +159,26 @@ watch(
     inset 0 1px 0 rgba(255, 244, 224, 0.04);
 }
 
-.chapter-content {
+.chapter-panel {
   display: grid;
   place-items: center;
   padding: 20px;
   border-left: 1px solid rgba(214, 192, 160, 0.12);
   background: linear-gradient(145deg, rgba(31, 27, 23, 0.48), rgba(12, 12, 12, 0.62));
+}
+
+.chat-toggle {
+  padding: 10px 16px;
+  color: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(255, 244, 224, 0.24);
+  border-radius: 10px;
+  background: rgba(173, 132, 92, 0.28);
+  cursor: pointer;
+}
+
+.chat-toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 @media (max-width: 760px) {

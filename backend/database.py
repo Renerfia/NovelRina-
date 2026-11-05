@@ -7,9 +7,12 @@ load_dotenv()
 url: str = str(os.environ.get("SUPABASE_URL"))
 public_key: str = str(os.environ.get("SUPABASE_PUBLIC_KEY"))
 
-async def init_supabase() -> AsyncClient:
+async def init_supabase(access_token: str | None = None) -> AsyncClient:
     """Initialize the Supabase client."""
-    return await acreate_client(url, public_key)
+    client = await acreate_client(url, public_key)
+    if access_token:
+        client.postgrest.auth(access_token)
+    return client
 
 
 
@@ -124,17 +127,18 @@ async def delete_chapter(novel_id: str, chapter_id: str):
     )
 
 
-async def vector_search(novel_id: str, query: str, top_k: int = 3):
-    supabase = await init_supabase()
-    from agent.agent import get_embeddings
+async def vector_search(user_id: str, novel_id: str, query: str, top_k: int = 3, access_token: str | None = None):
+    supabase = await init_supabase(access_token)
 
+    from agent.agent import get_embeddings
     query_embedding = await get_embeddings(query)
     return await supabase.rpc(
-        "match_chapters",
+        "match_chapters_novelrina",
         {
             "query_embedding": query_embedding,
             "match_count": top_k,
             "filter_novel_id": novel_id,
+            "filter_user_id": user_id
         },
     ).execute()
 
