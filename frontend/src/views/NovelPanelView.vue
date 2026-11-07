@@ -2,7 +2,9 @@
   <main class="novel-panel-page">
     <BubbleToolMenu
       :novel-id="novel?.novel_id ?? null"
-      @show-chat-panel="showChatPanel = true"
+      @show-dashboard-panel="currentPanel = 'dashboard'"
+      @show-chat-panel="currentPanel = 'chat'"
+      @show-summary-panel="currentPanel = 'summary'"
     />
 
     <button
@@ -28,15 +30,19 @@
         @selected_chapter="selected_chapter = $event"
       />
 
-      <!-- Editor Panel -->
+      <!-- The active panel is controlled entirely by currentPanel. -->
       <section class="chapter-editor-panel">
-        <ChatPanel
-          v-if="showChatPanel"
-          :authorId="user?.id ?? null"
-          :novelId="novel?.novel_id ?? null"
-          @close="showChatPanel = false"
+        <ChapterDashboard
+          v-if="currentPanel === 'dashboard'"
+          :selected_chapter="selected_chapter"
         />
-        <SummarizationPanel :chapter="selected_chapter" />
+        <SummarizationPanel v-else-if="currentPanel === 'summary'" :chapter="selected_chapter" />
+        <ChatPanel
+          v-else-if="currentPanel === 'chat'"
+          :author-id="user?.id ?? null"
+          :novel-id="novel?.novel_id ?? null"
+          @close="currentPanel = 'dashboard'"
+        />
       </section>
     </div>
   </main>
@@ -50,10 +56,11 @@ import ListChapterSideBar from '@/components/ListChapterSideBar.vue'
 import { useNovels } from '@/composables/useNovels'
 import { useChapter } from '@/composables/useChapter'
 import type { Novel } from '@/composables/useNovels'
-import SummarizationPanel from '@/components/SummarizationPanel.vue'
 import type { Chapter } from '@/composables/useChapter'
-import ChatPanel from '@/components/ChatPanel.vue'
 import BubbleToolMenu from '@/components/BubbleToolMenu.vue'
+import ChapterDashboard from '@/components/ChapterDashboard.vue'
+import SummarizationPanel from '@/components/SummarizationPanel.vue'
+import ChatPanel from '@/components/ChatPanel.vue'
 import { useAuth } from '@/composables/useAuth'
 
 const route = useRoute()
@@ -62,8 +69,7 @@ const novel = ref<Novel | null>(null)
 const novelLoading = ref(false)
 const novelError = ref<string | null>(null)
 const selected_chapter = ref<Chapter | null>(null)
-const showChatPanel = ref<boolean>(false)
-
+const currentPanel = ref<'dashboard' | 'summary' | 'chat'>('dashboard')
 const { user } = useAuth()
 const { fetchNovel } = useNovels()
 const { chapters, loading: chapterLoading, error: chapterError, fetchChapters } = useChapter()
@@ -164,7 +170,6 @@ watch(
   border-left: 1px solid rgba(214, 192, 160, 0.12);
   background: linear-gradient(145deg, rgba(31, 27, 23, 0.48), rgba(12, 12, 12, 0.62));
 }
-
 
 @media (max-width: 760px) {
   .novel-back-button {

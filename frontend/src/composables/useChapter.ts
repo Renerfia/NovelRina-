@@ -127,7 +127,7 @@ export function useChapter() {
         .delete()
         .eq('novel_id', novelId)
         .eq('chapter_id', chapterId)
-        .select('chapter_id')
+        .select('chapter_id, chapter_name, chapter_content, novel_id')
         .single()
 
       if (deleteError) {

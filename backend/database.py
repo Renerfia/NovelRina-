@@ -73,6 +73,7 @@ async def delete_novel(author_id: str, novel_id: str):
 
 
 async def create_chapter(
+    author_id: str,
     chapter_name: str,
     novel_id: str,
     content: str,

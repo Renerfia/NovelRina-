@@ -3,21 +3,36 @@
     <Transition name="tool-menu">
       <menu v-if="showMenu" class="tool-menu" aria-label="Tool menu">
         <li class="tool-menu-item">
+          <button class="tool-menu-button" type="button" @click="showDashbaordPanel">
+            Chapter Dashboard
+          </button>
+        </li>
+
+        <li class="tool-menu-item">
           <button
             class="tool-menu-button"
             type="button"
             :disabled="!props.novelId"
             @click="showChatPanel"
           >
-            Chat
+            AI Assistant
           </button>
         </li>
+
         <li class="tool-menu-item">
-          <button class="tool-menu-button" type="button">Button 2</button>
+          <button
+            class="tool-menu-button"
+            type="button"
+            :disabled="!props.novelId"
+            @click="showSummaryPanel"
+          >
+            View Chapter Summary
+          </button>
         </li>
       </menu>
     </Transition>
 
+    <!-- close button -->
     <button
       class="bubble-tool-button"
       type="button"
@@ -35,22 +50,36 @@ import { ref } from 'vue'
 
 const props = defineProps<{ novelId?: string | null }>()
 const showMenu = ref(false)
+const emits = defineEmits<{
+  (event: 'close'): void
+  (event: 'showChatPanel'): void
+  (event: 'showSummaryPanel'): void
+  (event: 'showDashboardPanel'): void
+}>()
 
 function toggleMenu() {
   showMenu.value = !showMenu.value
 }
 
+//for chat
 function showChatPanel() {
   if (!props.novelId) return
   emits('showChatPanel')
   showMenu.value = false
 }
 
-const emits = defineEmits<{
-  (event: 'close'): void
-  (event: 'showChatPanel'): void
-  (event: 'showSummarizationPanel'): void
-}>()
+//for chapter summary
+function showSummaryPanel() {
+  if (!props.novelId) return
+  emits('showSummaryPanel')
+  showMenu.value = false
+}
+
+//for dashboard
+function showDashbaordPanel() {
+  emits('showDashboardPanel')
+  showMenu.value = false
+}
 </script>
 
 <style scoped>
@@ -195,7 +224,8 @@ const emits = defineEmits<{
 }
 
 @keyframes bubble-float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0);
   }
   50% {
