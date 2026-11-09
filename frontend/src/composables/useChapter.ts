@@ -13,6 +13,7 @@ export interface Chapter {
 const chapters = ref<Chapter[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
+const status_msg = ref<string | null>(null)
 
 export function useChapter() {
   /** Fetch all chapters that belong to one novel. */
@@ -20,6 +21,7 @@ export function useChapter() {
     // Show that a request is running and clear an error from a previous request.
     loading.value = true
     error.value = null
+    status_msg.value = 'Fetching chapters...'
 
     try {
       // Query only the chapter fields used by the application.
@@ -36,6 +38,7 @@ export function useChapter() {
       }
 
       chapters.value = data ?? []
+      status_msg.value = 'Found your all chapters!'
       return { data: chapters.value, error: null }
     } catch (caughtError) {
       const message =
@@ -53,6 +56,7 @@ export function useChapter() {
   async function createChapter(novelId: string, title: string, content: string) {
     loading.value = true
     error.value = null
+    status_msg.value = 'Creating chapter...'
 
     try {
       // Insert positional arguments into their matching database columns.
@@ -69,6 +73,7 @@ export function useChapter() {
 
       // Keep the local state in sync without fetching all chapters again.
       chapters.value.push(data)
+      status_msg.value = 'Chapter created successfully!'
       return { data, error: null }
     } catch (caughtError) {
       const message =
@@ -85,8 +90,10 @@ export function useChapter() {
   async function updateChapter(novelId: string, chapterId: string, title: string, content: string) {
     loading.value = true
     error.value = null
+    status_msg.value = 'Updating chapter...'
 
     try {
+      console.log('Updating chapter:', { novelId, chapterId, title, content })
       // Require both IDs so a chapter from another novel cannot be modified.
       const { data, error: updateError } = await supabase
         .from('chapters')
@@ -104,6 +111,10 @@ export function useChapter() {
       chapters.value = chapters.value.map((chapter) =>
         chapter.chapter_id === chapterId && chapter.novel_id === novelId ? data : chapter,
       )
+
+      console.log('Chapter updated successfully:', data)
+      status_msg.value = 'Chapter updated successfully!'
+
       return { data, error: null }
     } catch (caughtError) {
       const message =
@@ -144,6 +155,7 @@ export function useChapter() {
       chapters.value = chapters.value.filter(
         (chapter) => !(chapter.chapter_id === chapterId && chapter.novel_id === novelId),
       )
+
       return { success: true, error: null }
     } catch (caughtError) {
       const message =
@@ -188,6 +200,7 @@ export function useChapter() {
   return {
     chapters,
     loading,
+    status_msg,
     error,
     fetchChapters,
     createChapter,

@@ -13,6 +13,17 @@
             class="tool-menu-button"
             type="button"
             :disabled="!props.novelId"
+            @click="showEditorPanel"
+          >
+            Editor Panel
+          </button>
+        </li>
+
+        <li class="tool-menu-item">
+          <button
+            class="tool-menu-button"
+            type="button"
+            :disabled="!props.novelId"
             @click="showChatPanel"
           >
             AI Assistant
@@ -55,6 +66,7 @@ const emits = defineEmits<{
   (event: 'showChatPanel'): void
   (event: 'showSummaryPanel'): void
   (event: 'showDashboardPanel'): void
+  (event: 'showEditorPanel'): void
 }>()
 
 function toggleMenu() {
@@ -78,6 +90,11 @@ function showSummaryPanel() {
 //for dashboard
 function showDashbaordPanel() {
   emits('showDashboardPanel')
+  showMenu.value = false
+}
+
+function showEditorPanel() {
+  emits('showEditorPanel')
   showMenu.value = false
 }
 </script>

@@ -13,7 +13,9 @@
         <div class="card-heading">
           <h2>Chapter content</h2>
         </div>
-        <p class="chapter-content">{{ selected_chapter.chapter_content }}</p>
+        <div class="chapter-content-wrapper">
+          <p class="chapter-content">{{ selected_chapter.chapter_content }}</p>
+        </div>
       </section>
 
       <aside class="details-card">
@@ -119,6 +121,10 @@ defineProps<{
 }
 
 .card-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   padding-bottom: 14px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
@@ -131,8 +137,35 @@ defineProps<{
   font-size: 1rem;
 }
 
+.chapter-content-wrapper {
+  height: 310px;
+  margin-top: 18px;
+  padding: 16px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 12px;
+  background: rgba(8, 8, 8, 0.24);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.35) transparent;
+}
+
+.chapter-content-wrapper::-webkit-scrollbar {
+  width: 8px;
+}
+
+.chapter-content-wrapper::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chapter-content-wrapper::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.28);
+}
+
 .chapter-content {
-  margin: 18px 0 0;
+  margin: 0;
   color: rgba(255, 255, 255, 0.86);
   font-family: var(--font-reading);
   font-size: 1rem;

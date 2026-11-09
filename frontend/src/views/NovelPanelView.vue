@@ -5,6 +5,7 @@
       @show-dashboard-panel="currentPanel = 'dashboard'"
       @show-chat-panel="currentPanel = 'chat'"
       @show-summary-panel="currentPanel = 'summary'"
+      @show-editor-panel="currentPanel = 'edit'"
     />
 
     <button
@@ -17,7 +18,10 @@
       <ArrowLeft :stroke-width="2" />
     </button>
 
-    <p v-if="novelLoading || chapterLoading">Loading...</p>
+    <div v-if="novelLoading || chapterLoading" class="loading-state" role="status">
+      <ProgressSpinner aria-label="Loading novel" />
+      <span class="status-msg">{{ chapter_status_msg }}</span>
+    </div>
 
     <p v-else-if="novelError || chapterError">
       {{ novelError || chapterError }}
@@ -43,6 +47,11 @@
           :novel-id="novel?.novel_id ?? null"
           @close="currentPanel = 'dashboard'"
         />
+        <EditorPanel
+          v-else-if="currentPanel === 'edit'"
+          :selected_chapter="selected_chapter"
+          @update-chapter="updateChapter"
+        ></EditorPanel>
       </section>
     </div>
   </main>
@@ -52,6 +61,7 @@
 import { ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft } from 'lucide-vue-next'
+import ProgressSpinner from 'primevue/progressspinner'
 import ListChapterSideBar from '@/components/ListChapterSideBar.vue'
 import { useNovels } from '@/composables/useNovels'
 import { useChapter } from '@/composables/useChapter'
@@ -62,6 +72,7 @@ import ChapterDashboard from '@/components/ChapterDashboard.vue'
 import SummarizationPanel from '@/components/SummarizationPanel.vue'
 import ChatPanel from '@/components/ChatPanel.vue'
 import { useAuth } from '@/composables/useAuth'
+import EditorPanel from '@/components/EditorPanel.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -69,13 +80,33 @@ const novel = ref<Novel | null>(null)
 const novelLoading = ref(false)
 const novelError = ref<string | null>(null)
 const selected_chapter = ref<Chapter | null>(null)
-const currentPanel = ref<'dashboard' | 'summary' | 'chat'>('dashboard')
+const currentPanel = ref<'dashboard' | 'summary' | 'chat' | 'edit'>('dashboard')
 const { user } = useAuth()
 const { fetchNovel } = useNovels()
-const { chapters, loading: chapterLoading, error: chapterError, fetchChapters } = useChapter()
+const {
+  chapters,
+  loading: chapterLoading,
+  status_msg: chapter_status_msg,
+  error: chapterError,
+  fetchChapters,
+  updateChapter: saveChapter,
+} = useChapter()
 
 function backToNovels() {
   void router.push({ name: 'novels' })
+}
+
+async function updateChapter(chapter: Chapter) {
+  const result = await saveChapter(
+    chapter.novel_id,
+    chapter.chapter_id,
+    chapter.chapter_name,
+    chapter.chapter_content,
+  )
+
+  if (result.data) {
+    selected_chapter.value = result.data
+  }
 }
 
 watch(
@@ -148,6 +179,15 @@ watch(
   border-color: rgba(255, 244, 224, 0.42);
   background: rgba(255, 255, 255, 0.16);
   transform: translateX(-2px);
+}
+
+.loading-state {
+  display: grid;
+  min-height: calc(100vh - 40px);
+  place-content: center;
+  justify-items: center;
+  gap: 12px;
+  color: rgba(255, 255, 255, 0.82);
 }
 
 .novel-panel-layout {
