@@ -60,7 +60,7 @@ function saveChapter() {
 
 <style scoped>
 .editor-panel {
-  width: min(720px, 100%);
+  width: 100%;
   min-height: min(620px, calc(100vh - 80px));
   display: grid;
   grid-template-rows: auto 1fr;

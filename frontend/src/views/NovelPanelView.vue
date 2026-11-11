@@ -205,7 +205,7 @@ watch(
 
 .chapter-editor-panel {
   display: grid;
-  place-items: center;
+  place-items: stretch;
   padding: 20px;
   border-left: 1px solid rgba(214, 192, 160, 0.12);
   background: linear-gradient(145deg, rgba(31, 27, 23, 0.48), rgba(12, 12, 12, 0.62));

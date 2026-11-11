@@ -6,6 +6,7 @@ export interface Chapter {
   chapter_id: string
   chapter_name: string
   chapter_content: string
+  chapter_content_summary: string | null
   novel_id: string
 }
 
@@ -27,7 +28,7 @@ export function useChapter() {
       // Query only the chapter fields used by the application.
       const { data, error: queryError } = await supabase
         .from('chapters')
-        .select('chapter_id, chapter_name, chapter_content, novel_id')
+        .select('chapter_id, chapter_name, chapter_content, chapter_content_summary, novel_id')
         .eq('novel_id', novelId)
 
       if (queryError) {
