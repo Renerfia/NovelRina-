@@ -80,6 +80,7 @@ async def create_chapter(
     max_tokens: int = 1000,
 ):
     supabase = await init_supabase()
+
     author = await get_current_user()
     if not author.user:
         raise ValueError("The author isn't verified.")
@@ -142,4 +143,3 @@ async def vector_search(user_id: str, novel_id: str, query: str, top_k: int = 3,
             "filter_user_id": user_id
         },
     ).execute()
-
