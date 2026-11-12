@@ -1,14 +1,11 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from dependencies import verify_user
-from fastapi import Depends
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from agent.agent import ChatDeps, response_agent, get_full_prompt
 from pydantic import BaseModel
-from database import init_supabase
 from agent.agent import get_summary
 from tools.chunk import chunk_text
 
 router = APIRouter()
+
 
 class SummaryRequest(BaseModel):
     chapter_content: str
@@ -16,30 +13,31 @@ class SummaryRequest(BaseModel):
 
 @router.post('/get-summary')
 async def router_get_summary(
-    chapter_content: SummaryRequest,
-    auth = Depends(verify_user)
+    request: SummaryRequest,
+    auth=Depends(verify_user),
 ):
     if not auth['user']:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    
-    chunks = chunk_text(chapter_content)
+
+    if not request.chapter_content.strip():
+        raise HTTPException(status_code=400, detail="Chapter content cannot be empty.")
+
+    chunks = chunk_text(request.chapter_content)
+
+    chunk_summaries = []
 
     for chunk in chunks:
         try:
-            summary = await get_summary(chunk)
-
+            chunk_summary = await get_summary(chunk)
+            chunk_summaries.append(chunk_summary)
         except Exception as exc:
+            print(f"router_get_summary got error: {exc}")
             raise HTTPException(
                 status_code=502,
                 detail="Summary generation failed.",
             ) from exc
 
-
-
-
-
-
-
+    return {"summary": "\n\n".join(chunk_summaries)}
 
 
 

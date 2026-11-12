@@ -4,6 +4,9 @@ from pydantic_ai.embeddings.google import GoogleEmbeddingModel
 from dotenv import load_dotenv
 import asyncio
 from database import vector_search
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 from dataclasses import dataclass
@@ -61,10 +64,12 @@ summary_agent = Agent(
 
 # Embedding model and its  settings
 settings = EmbeddingSettings(dimensions=768)
+
 model = GoogleEmbeddingModel(
     "gemini-embedding-2",
     settings=settings
 )
+
 embedding_agent = Embedder(model)
 
 def get_full_prompt(user_query: str,message_history:list) -> str:
@@ -102,10 +107,16 @@ async def get_embeddings(text:str):
         raise
 
 async def get_summary(text:str)->str:
+
+    text = text.replace("\u23ce", " ").strip()
+
+
     try:
         response = await summary_agent.run(text)
         return response.output
     except Exception as e:
+        logger.exception("Summary model call failed")
         if "429" in str(e):
             await asyncio.sleep(2)
+        print(f"The model failed to summarize: {e}")
         raise

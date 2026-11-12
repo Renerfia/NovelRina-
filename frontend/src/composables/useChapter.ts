@@ -64,7 +64,7 @@ export function useChapter() {
       const { data, error: insertError } = await supabase
         .from('chapters')
         .insert([{ novel_id: novelId, chapter_name: title, chapter_content: content }])
-        .select('chapter_id, chapter_name, chapter_content, novel_id')
+        .select('chapter_id, chapter_name, chapter_content, chapter_content_summary, novel_id')
         .single()
 
       if (insertError) {
@@ -101,7 +101,7 @@ export function useChapter() {
         .update({ chapter_name: title, chapter_content: content })
         .eq('novel_id', novelId)
         .eq('chapter_id', chapterId)
-        .select('chapter_id, chapter_name, chapter_content, novel_id')
+        .select('chapter_id, chapter_name, chapter_content, chapter_content_summary, novel_id')
         .single()
 
       if (updateError) {
@@ -120,6 +120,40 @@ export function useChapter() {
     } catch (caughtError) {
       const message =
         caughtError instanceof Error ? caughtError.message : 'Failed to update chapter'
+
+      error.value = message
+      return { data: null, error: message }
+    } finally {
+      loading.value = false
+    }
+  }
+
+  /** Save a chapter summary and keep the shared chapter list in sync. */
+  async function updateChapterSummary(chapterId: string, summary: string) {
+    loading.value = true
+    error.value = null
+
+    try {
+      const { data, error: updateError } = await supabase
+        .from('chapters')
+        .update({ chapter_content_summary: summary })
+        .eq('chapter_id', chapterId)
+        .select('chapter_id, chapter_name, chapter_content, chapter_content_summary, novel_id')
+        .single()
+
+      if (updateError) {
+        error.value = updateError.message
+        return { data: null, error: updateError.message }
+      }
+
+      chapters.value = chapters.value.map((chapter) =>
+        chapter.chapter_id === chapterId ? data : chapter,
+      )
+
+      return { data, error: null }
+    } catch (caughtError) {
+      const message =
+        caughtError instanceof Error ? caughtError.message : 'Failed to save chapter summary'
 
       error.value = message
       return { data: null, error: message }
@@ -206,6 +240,7 @@ export function useChapter() {
     fetchChapters,
     createChapter,
     updateChapter,
+    updateChapterSummary,
     deleteChapter,
     getNovelDetails,
   }

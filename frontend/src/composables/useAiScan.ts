@@ -1,60 +1,40 @@
 import { ref } from 'vue'
-import { supabase } from '@/lib/supabase'
-import type { Chapter } from '@/composables/useChapter'
+import { useAuth } from '@/composables/useAuth'
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:8000'
 
 const loading = ref<boolean>(false)
-const chapter = ref<Chapter | null>(null)
 
-export async function useAiScan() {
-  //check if summary already exists for the chapter content
-  const chapter_content_summary = chapter.value?.chapter_content_summary
-  if (chapter_content_summary) {
-    console.log('Summary already exists for this chapter content.')
-    return chapter_content_summary
-  }
+export function useAiScan() {
+  const { session } = useAuth()
 
   async function getChapterSummary(chapter_content: string) {
+    const accessToken = session.value?.access_token
+    if (!accessToken) {
+      throw new Error('You must be signed in to summarize a chapter.')
+    }
+
     loading.value = true
 
     try {
-      const response = await fetch(`${SERVER_URL}/ai/scan`, {
+      const response = await fetch(`${SERVER_URL}/get-summary`, {
         method: 'POST',
         headers: {
+          Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ chapter_content }),
       })
-      const data = await response.json()
-      return data
-    } catch (error) {
-      console.error('Error fetching chapter summary:', error)
-      throw error
-    } finally {
-      loading.value = false
-    }
-  }
 
-  async function updateChapterSummary(chapter_id: string, summary: string) {
-    loading.value = true
-
-    try {
-      const { data, error } = await supabase
-        .from('chapters')
-        .update({ chapter_content_summary: summary })
-        .eq('chapter_id', chapter_id)
-        .select()
-
-      if (error) {
-        console.error('Error updating chapter summary:', error)
-        throw error
+      const result = await response.json().catch(() => null)
+      if (!response.ok) {
+        throw new Error(result?.detail ?? `Summary request failed: ${response.status}`)
+      }
+      if (typeof result?.summary !== 'string') {
+        throw new Error('The summary service returned an invalid response.')
       }
 
-      return data
-    } catch (error) {
-      console.error('Error updating chapter summary:', error)
-      throw error
+      return result.summary as string
     } finally {
       loading.value = false
     }
@@ -62,7 +42,6 @@ export async function useAiScan() {
 
   return {
     getChapterSummary,
-    updateChapterSummary,
     loading,
   }
 }
