@@ -6,6 +6,7 @@ export interface Chapter {
   chapter_id: string
   chapter_name: string
   chapter_content: string
+  chapter_content_summary: string | null
   novel_id: string
 }
 
@@ -13,6 +14,7 @@ export interface Chapter {
 const chapters = ref<Chapter[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
+const status_msg = ref<string | null>(null)
 
 export function useChapter() {
   /** Fetch all chapters that belong to one novel. */
@@ -20,12 +22,13 @@ export function useChapter() {
     // Show that a request is running and clear an error from a previous request.
     loading.value = true
     error.value = null
+    status_msg.value = 'Fetching chapters...'
 
     try {
       // Query only the chapter fields used by the application.
       const { data, error: queryError } = await supabase
         .from('chapters')
-        .select('chapter_id, chapter_name, chapter_content, novel_id')
+        .select('chapter_id, chapter_name, chapter_content, chapter_content_summary, novel_id')
         .eq('novel_id', novelId)
 
       if (queryError) {
@@ -36,6 +39,7 @@ export function useChapter() {
       }
 
       chapters.value = data ?? []
+      status_msg.value = 'Found your all chapters!'
       return { data: chapters.value, error: null }
     } catch (caughtError) {
       const message =
@@ -53,13 +57,14 @@ export function useChapter() {
   async function createChapter(novelId: string, title: string, content: string) {
     loading.value = true
     error.value = null
+    status_msg.value = 'Creating chapter...'
 
     try {
       // Insert positional arguments into their matching database columns.
       const { data, error: insertError } = await supabase
         .from('chapters')
         .insert([{ novel_id: novelId, chapter_name: title, chapter_content: content }])
-        .select('chapter_id, chapter_name, chapter_content, novel_id')
+        .select('chapter_id, chapter_name, chapter_content, chapter_content_summary, novel_id')
         .single()
 
       if (insertError) {
@@ -69,6 +74,7 @@ export function useChapter() {
 
       // Keep the local state in sync without fetching all chapters again.
       chapters.value.push(data)
+      status_msg.value = 'Chapter created successfully!'
       return { data, error: null }
     } catch (caughtError) {
       const message =
@@ -85,15 +91,17 @@ export function useChapter() {
   async function updateChapter(novelId: string, chapterId: string, title: string, content: string) {
     loading.value = true
     error.value = null
+    status_msg.value = 'Updating chapter...'
 
     try {
+      console.log('Updating chapter:', { novelId, chapterId, title, content })
       // Require both IDs so a chapter from another novel cannot be modified.
       const { data, error: updateError } = await supabase
         .from('chapters')
         .update({ chapter_name: title, chapter_content: content })
         .eq('novel_id', novelId)
         .eq('chapter_id', chapterId)
-        .select('chapter_id, chapter_name, chapter_content, novel_id')
+        .select('chapter_id, chapter_name, chapter_content, chapter_content_summary, novel_id')
         .single()
 
       if (updateError) {
@@ -104,10 +112,48 @@ export function useChapter() {
       chapters.value = chapters.value.map((chapter) =>
         chapter.chapter_id === chapterId && chapter.novel_id === novelId ? data : chapter,
       )
+
+      console.log('Chapter updated successfully:', data)
+      status_msg.value = 'Chapter updated successfully!'
+
       return { data, error: null }
     } catch (caughtError) {
       const message =
         caughtError instanceof Error ? caughtError.message : 'Failed to update chapter'
+
+      error.value = message
+      return { data: null, error: message }
+    } finally {
+      loading.value = false
+    }
+  }
+
+  /** Save a chapter summary and keep the shared chapter list in sync. */
+  async function updateChapterSummary(chapterId: string, summary: string) {
+    loading.value = true
+    error.value = null
+
+    try {
+      const { data, error: updateError } = await supabase
+        .from('chapters')
+        .update({ chapter_content_summary: summary })
+        .eq('chapter_id', chapterId)
+        .select('chapter_id, chapter_name, chapter_content, chapter_content_summary, novel_id')
+        .single()
+
+      if (updateError) {
+        error.value = updateError.message
+        return { data: null, error: updateError.message }
+      }
+
+      chapters.value = chapters.value.map((chapter) =>
+        chapter.chapter_id === chapterId ? data : chapter,
+      )
+
+      return { data, error: null }
+    } catch (caughtError) {
+      const message =
+        caughtError instanceof Error ? caughtError.message : 'Failed to save chapter summary'
 
       error.value = message
       return { data: null, error: message }
@@ -127,7 +173,7 @@ export function useChapter() {
         .delete()
         .eq('novel_id', novelId)
         .eq('chapter_id', chapterId)
-        .select('chapter_id')
+        .select('chapter_id, chapter_name, chapter_content, novel_id')
         .single()
 
       if (deleteError) {
@@ -144,6 +190,7 @@ export function useChapter() {
       chapters.value = chapters.value.filter(
         (chapter) => !(chapter.chapter_id === chapterId && chapter.novel_id === novelId),
       )
+
       return { success: true, error: null }
     } catch (caughtError) {
       const message =
@@ -188,10 +235,12 @@ export function useChapter() {
   return {
     chapters,
     loading,
+    status_msg,
     error,
     fetchChapters,
     createChapter,
     updateChapter,
+    updateChapterSummary,
     deleteChapter,
     getNovelDetails,
   }

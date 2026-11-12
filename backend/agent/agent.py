@@ -4,6 +4,9 @@ from pydantic_ai.embeddings.google import GoogleEmbeddingModel
 from dotenv import load_dotenv
 import asyncio
 from database import vector_search
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 from dataclasses import dataclass
@@ -15,7 +18,9 @@ load_dotenv()
 #response agent and its functions
 @dataclass
 class ChatDeps:
+    user_id: str
     novel_id: str
+    access_token: str
 
 response_agent = Agent(
     model="google:gemini-3.5-flash-lite",
@@ -29,18 +34,22 @@ async def search_novel_memory(
     ctx: RunContext[ChatDeps],
     query: str,
 ) -> str:
-    """Search the selected novel for relevant memories."""
+    """Search the novel memory for relevant content based on the query."""
 
-    
+    print(f"Searching novel memory for user_id: {ctx.deps.user_id}, novel_id: {ctx.deps.novel_id}, query: {query}")
     response = await vector_search(
+        user_id=ctx.deps.user_id,
         novel_id=ctx.deps.novel_id,
         query=query,
         top_k=3,
+        access_token=ctx.deps.access_token,
     )
     memories = response.data
-
+    print(f"Memories found: {memories}")
+    
     if not memories:
         return "No relevant novel memory was found."
+
 
     return "\n".join(
         f"Content: {memory['chapter_content']}\n"
@@ -55,10 +64,12 @@ summary_agent = Agent(
 
 # Embedding model and its  settings
 settings = EmbeddingSettings(dimensions=768)
+
 model = GoogleEmbeddingModel(
     "gemini-embedding-2",
     settings=settings
 )
+
 embedding_agent = Embedder(model)
 
 def get_full_prompt(user_query: str,message_history:list) -> str:
@@ -90,15 +101,22 @@ async def get_embeddings(text:str):
     print("Getting embeddings...")
     try:
         embeddings = await embedding_agent.embed_query(text)
+        print("Done getting embeddings.")
         return embeddings.embeddings[0]
     except Exception as e:
         raise
 
 async def get_summary(text:str)->str:
+
+    text = text.replace("\u23ce", " ").strip()
+
+
     try:
         response = await summary_agent.run(text)
         return response.output
     except Exception as e:
+        logger.exception("Summary model call failed")
         if "429" in str(e):
             await asyncio.sleep(2)
+        print(f"The model failed to summarize: {e}")
         raise

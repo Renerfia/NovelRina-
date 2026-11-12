@@ -9,8 +9,9 @@ async def verify_user(credentials: HTTPAuthorizationCredentials = Depends(securi
     token = credentials.credentials
     try:
         supabase = await init_supabase()
-        user = await supabase.auth.get_user(token)
-        print(f"User verified: {user}")
+        response = await supabase.auth.get_user(token)
+        print(f"User verified: {response.user}")
+        return {"user": response.user, "access_token": token}
     except Exception as e:
         print(f"User verification failed: {e}")
         raise HTTPException(status_code=401, detail="Invalid authentication credentials")

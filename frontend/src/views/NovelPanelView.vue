@@ -1,7 +1,15 @@
 <template>
-  <main class="novel-details-page">
+  <main class="novel-panel-page">
+    <BubbleToolMenu
+      :novel-id="novel?.novel_id ?? null"
+      @show-dashboard-panel="currentPanel = 'dashboard'"
+      @show-chat-panel="currentPanel = 'chat'"
+      @show-summary-panel="currentPanel = 'summary'"
+      @show-editor-panel="currentPanel = 'edit'"
+    />
+
     <button
-      class="back-button"
+      class="novel-back-button"
       type="button"
       aria-label="Back to novels"
       title="Back to novels"
@@ -10,21 +18,40 @@
       <ArrowLeft :stroke-width="2" />
     </button>
 
-    <p v-if="novelLoading || chapterLoading">Loading...</p>
+    <div v-if="novelLoading || chapterLoading" class="loading-state" role="status">
+      <ProgressSpinner aria-label="Loading novel" />
+      <span class="status-msg">{{ chapter_status_msg }}</span>
+    </div>
 
     <p v-else-if="novelError || chapterError">
       {{ novelError || chapterError }}
     </p>
 
-    <div v-else class="novel-details-layout">
+    <div v-else class="novel-panel-layout">
       <ListChapterSideBar
         :chapters="chapters"
         :novel="novel"
         @selected_chapter="selected_chapter = $event"
       />
 
-      <section class="chapter-content">
-        <SummarizationPanel :chapter="selected_chapter" />
+      <!-- The active panel is controlled entirely by currentPanel. -->
+      <section class="chapter-editor-panel">
+        <ChapterDashboard
+          v-if="currentPanel === 'dashboard'"
+          :selected_chapter="selected_chapter"
+        />
+        <SummarizationPanel v-else-if="currentPanel === 'summary'" :chapter="selected_chapter" />
+        <ChatPanel
+          v-else-if="currentPanel === 'chat'"
+          :author-id="user?.id ?? null"
+          :novel-id="novel?.novel_id ?? null"
+          @close="currentPanel = 'dashboard'"
+        />
+        <EditorPanel
+          v-else-if="currentPanel === 'edit'"
+          :selected_chapter="selected_chapter"
+          @update-chapter="updateChapter"
+        ></EditorPanel>
       </section>
     </div>
   </main>
@@ -34,12 +61,18 @@
 import { ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft } from 'lucide-vue-next'
+import ProgressSpinner from 'primevue/progressspinner'
 import ListChapterSideBar from '@/components/ListChapterSideBar.vue'
 import { useNovels } from '@/composables/useNovels'
 import { useChapter } from '@/composables/useChapter'
 import type { Novel } from '@/composables/useNovels'
-import SummarizationPanel from '@/components/SummarizationPanel.vue'
 import type { Chapter } from '@/composables/useChapter'
+import BubbleToolMenu from '@/components/BubbleToolMenu.vue'
+import ChapterDashboard from '@/components/ChapterDashboard.vue'
+import SummarizationPanel from '@/components/SummarizationPanel.vue'
+import ChatPanel from '@/components/ChatPanel.vue'
+import { useAuth } from '@/composables/useAuth'
+import EditorPanel from '@/components/EditorPanel.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -47,12 +80,33 @@ const novel = ref<Novel | null>(null)
 const novelLoading = ref(false)
 const novelError = ref<string | null>(null)
 const selected_chapter = ref<Chapter | null>(null)
-
+const currentPanel = ref<'dashboard' | 'summary' | 'chat' | 'edit'>('dashboard')
+const { user } = useAuth()
 const { fetchNovel } = useNovels()
-const { chapters, loading: chapterLoading, error: chapterError, fetchChapters } = useChapter()
+const {
+  chapters,
+  loading: chapterLoading,
+  status_msg: chapter_status_msg,
+  error: chapterError,
+  fetchChapters,
+  updateChapter: saveChapter,
+} = useChapter()
 
 function backToNovels() {
   void router.push({ name: 'novels' })
+}
+
+async function updateChapter(chapter: Chapter) {
+  const result = await saveChapter(
+    chapter.novel_id,
+    chapter.chapter_id,
+    chapter.chapter_name,
+    chapter.chapter_content,
+  )
+
+  if (result.data) {
+    selected_chapter.value = result.data
+  }
 }
 
 watch(
@@ -62,7 +116,7 @@ watch(
 
     selected_chapter.value = null
     novelLoading.value = true
-    const novelResult = await fetchNovel(novelId)
+    const novelResult = await fetchNovel(novelId) //feteches the selected novel details
     novelLoading.value = false
 
     if (novelResult.data) {
@@ -80,7 +134,7 @@ watch(
 </script>
 
 <style scoped>
-.novel-details-page {
+.novel-panel-page {
   position: relative;
   min-height: 100vh;
   padding: 20px;
@@ -91,7 +145,7 @@ watch(
     linear-gradient(145deg, #171513 0%, #11100f 48%, #090909 100%);
 }
 
-.back-button {
+.novel-back-button {
   position: absolute;
   z-index: 10;
   top: 30px;
@@ -116,18 +170,27 @@ watch(
     transform 0.2s ease;
 }
 
-.back-button svg {
+.novel-back-button svg {
   width: 20px;
   height: 20px;
 }
 
-.back-button:hover {
+.novel-back-button:hover {
   border-color: rgba(255, 244, 224, 0.42);
   background: rgba(255, 255, 255, 0.16);
   transform: translateX(-2px);
 }
 
-.novel-details-layout {
+.loading-state {
+  display: grid;
+  min-height: calc(100vh - 40px);
+  place-content: center;
+  justify-items: center;
+  gap: 12px;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.novel-panel-layout {
   display: grid;
   grid-template-columns: 280px 1fr;
   min-height: calc(100vh - 40px);
@@ -140,23 +203,23 @@ watch(
     inset 0 1px 0 rgba(255, 244, 224, 0.04);
 }
 
-.chapter-content {
+.chapter-editor-panel {
   display: grid;
-  place-items: center;
+  place-items: stretch;
   padding: 20px;
   border-left: 1px solid rgba(214, 192, 160, 0.12);
   background: linear-gradient(145deg, rgba(31, 27, 23, 0.48), rgba(12, 12, 12, 0.62));
 }
 
 @media (max-width: 760px) {
-  .back-button {
+  .novel-back-button {
     top: 22px;
     left: 170px;
     width: 40px;
     height: 40px;
   }
 
-  .novel-details-layout {
+  .novel-panel-layout {
     grid-template-columns: 220px 1fr;
   }
 }
