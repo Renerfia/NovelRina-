@@ -1,4 +1,5 @@
 from supabase import AsyncClient, acreate_client
+from postgrest.exceptions import APIError
 from dotenv import load_dotenv
 import os
 
@@ -14,119 +15,36 @@ async def init_supabase(access_token: str | None = None) -> AsyncClient:
         client.postgrest.auth(access_token)
     return client
 
+async def save_chapter_embedding_to_db(
+    access_token: str,
+    chapter_id: str,
+    chapter_content_embedding,
+) -> None:
+    if not chapter_id.strip():
+        raise ValueError("Chapter ID cannot be empty.")
+    if not chapter_content_embedding:
+        raise ValueError("Chapter embedding cannot be empty.")
 
-
-async def fetch_novels(user_id: str):
-    supabase = await init_supabase()
-    return await (
-        supabase.table("novels")
-        .select("*")
-        .eq("author_id", user_id)
-        .execute()
-    )
-
-
-async def user_sign_up(email: str, password: str):
-    supabase = await init_supabase()
-    return await supabase.auth.sign_up({"email": email, "password": password})
-
-
-async def user_sign_in(email: str, password: str):
-    supabase = await init_supabase()
-    return await supabase.auth.sign_in_with_password(
-        {"email": email, "password": password}
-    )
-
-
-async def get_current_user():
-    supabase = await init_supabase()
-    return await supabase.auth.get_user()
-
-
-async def logout():
-    supabase = await init_supabase()
-    return await supabase.auth.sign_out()
-
-
-async def create_novel(novel_name: str):
-    supabase = await init_supabase()
-    author = await get_current_user()
-    if not author.user:
-        raise ValueError("Author isn't verified.")
-
-    return await (
-        supabase.table("novels")
-        .insert({"novel_name": novel_name, "author_id": author.user.id})
-        .execute()
-    )
-
-
-async def delete_novel(author_id: str, novel_id: str):
-    supabase = await init_supabase()
-    return await (
-        supabase.table("novels")
-        .delete()
-        .eq("novel_id", novel_id)
-        .eq("author_id", author_id)
-        .execute()
-    )
-
-
-async def create_chapter(
-    author_id: str,
-    chapter_name: str,
-    novel_id: str,
-    content: str,
-    max_tokens: int = 1000,
-):
-    supabase = await init_supabase()
-
-    author = await get_current_user()
-    if not author.user:
-        raise ValueError("The author isn't verified.")
-
-    is_novel = await (
-        supabase.table("novels")
-        .select("novel_id")
-        .eq("novel_id", novel_id)
-        .eq("author_id", author.user.id)
-        .single()
-        .execute()
-    )
-    if not is_novel.data:
-        raise ValueError("The novel doesn't exist in the database.")
-
-    from agent.agent import get_embeddings
+    supabase = await init_supabase(access_token)
 
     try:
-        content_embedding = await get_embeddings(content)
-    except Exception as e:
-        raise RuntimeError(f"Failed to generate embedding: {e}") from e
+        response = await (
+            supabase.table("chapters")
+            .update({"chapter_content_embedding": chapter_content_embedding})
+            .eq("chapter_id", chapter_id)
+            .select("chapter_id")
+            .execute()
+        )
+    except APIError as exc:
+        raise RuntimeError(
+            f"Failed to save embedding for chapter {chapter_id}: {exc}"
+        ) from exc
 
-    if not content_embedding:
-        raise ValueError("Embedding generation returned an empty vector.")
-
-    return await (
-        supabase.table("chapters")
-        .insert({
-            "novel_id": novel_id,
-            "chapter_name": chapter_name,
-            "chapter_content": content,
-            "chapter_content_embedding": content_embedding,
-        })
-        .execute()
-    )
-
-
-async def delete_chapter(novel_id: str, chapter_id: str):
-    supabase = await init_supabase()
-    return await (
-        supabase.table("chapters")
-        .delete()
-        .eq("novel_id", novel_id)
-        .eq("chapter_id", chapter_id)
-        .execute()
-    )
+    if not response.data:
+        raise LookupError(
+            f"No chapter was updated for ID {chapter_id}. "
+            "The chapter may not exist, or row-level security may block the update."
+        )
 
 
 async def vector_search(user_id: str, novel_id: str, query: str, top_k: int = 3, access_token: str | None = None):

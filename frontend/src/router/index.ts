@@ -32,27 +32,24 @@ const router = createRouter({
   ],
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to) => {
   const { isLoggedIn, loading } = useAuth()
 
   if (loading.value) {
-    const unwatch = watch(loading, (isLoading) => {
-      if (!isLoading) {
-        unwatch()
-        proceed()
-      }
+    await new Promise<void>((resolve) => {
+      const unwatch = watch(loading, (isLoading) => {
+        if (!isLoading) {
+          unwatch()
+          resolve()
+        }
+      })
     })
-  } else {
-    proceed()
   }
 
-  function proceed() {
-    if (to.meta.requiresAuth && !isLoggedIn.value) {
-      next({ name: 'home' })
-    } else {
-      next()
-    }
+  if (to.meta.requiresAuth && !isLoggedIn.value) {
+    return { name: 'home' }
   }
+  return true
 })
 
 export default router

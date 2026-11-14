@@ -2,9 +2,25 @@
   <div v-if="chapter" class="summarization-panel">
     <header class="panel-header">
       <h2>AI summary of the chapter</h2>
-      <button class="summarize-chapter" type="button" :disabled="loading" @click="summarizeChapter">
-        {{ loading ? 'Summarizing...' : 'Summarize' }}
-      </button>
+      <div class="ai-scan">
+        <button
+          class="summarize-chapter"
+          type="button"
+          :disabled="loading"
+          @click="summarizeChapter"
+        >
+          <span class="embed-chapter__step" aria-hidden="true">1</span>
+          {{ loading ? 'Summarizing...' : 'Summarize' }}
+        </button>
+        <span class="ai-scan-next" aria-label="After summarizing, create an embedding">
+          <span class="ai-scan-next__arrow" aria-hidden="true">→</span>
+          <span>Then embed</span>
+        </span>
+        <button class="embed-chapter" type="button" :disabled="loading" @click="embedChapter">
+          <span class="embed-chapter__step" aria-hidden="true">2</span>
+          {{ loading ? 'Embedding...' : 'Embed summary' }}
+        </button>
+      </div>
     </header>
 
     <article class="ai-summarization">
@@ -25,11 +41,13 @@ import { useChapter } from '@/composables/useChapter'
 import { useAiScan } from '@/composables/useAiScan'
 import { useToast } from 'primevue'
 
-const { loading, getChapterSummary } = useAiScan()
+const { loading, getChapterSummary, getSummaryEmbedding } = useAiScan()
 const { updateChapterSummary } = useChapter()
+
 const props = defineProps<{
   chapter: Chapter | null
 }>()
+
 const summary = ref('')
 const error = ref<string | null>(null)
 const toast = useToast()
@@ -48,24 +66,72 @@ async function summarizeChapter() {
 
   error.value = null
   try {
-    const generatedSummary = await getChapterSummary(props.chapter.chapter_content)
+    const generatedSummary = await getChapterSummary(props.chapter.chapter_content) //ai call
+
+    //saving the updated summary to the db
     const result = await updateChapterSummary(props.chapter.chapter_id, generatedSummary)
     if (result.error) {
       throw new Error(result.error)
     }
-    summary.value = generatedSummary
+
     toast.add({
       severity: 'success',
       summary: 'Summary generated',
       detail: 'Chapter summary is ready.',
       life: 3000,
     })
+
+    toast.add({
+      severity: 'success',
+      summary: 'Summary has been saved.',
+      life: 3000,
+    })
+
+    //now the panel will show the latest summary
+    summary.value = generatedSummary
   } catch (caughtError) {
     error.value =
       caughtError instanceof Error ? caughtError.message : 'Failed to summarize this chapter.'
     toast.add({
       severity: 'error',
       summary: 'Summary failed',
+      detail: error.value,
+      life: 5000,
+    })
+  }
+}
+
+async function embedChapter() {
+  const chapter = props.chapter
+  if (!chapter) return
+
+  error.value = null
+  const chapterSummary = chapter.chapter_content_summary?.trim()
+  if (!chapterSummary) {
+    error.value = 'Generate and save the chapter summary before embedding it.'
+    toast.add({
+      severity: 'error',
+      summary: 'Embedding failed',
+      detail: error.value,
+      life: 5000,
+    })
+    return
+  }
+
+  try {
+    await getSummaryEmbedding(chapter.chapter_id, chapterSummary)
+    toast.add({
+      severity: 'success',
+      summary: 'Embedding saved',
+      detail: 'The chapter summary embedding is ready.',
+      life: 3000,
+    })
+  } catch (caughtError) {
+    error.value =
+      caughtError instanceof Error ? caughtError.message : 'Failed to embed this chapter summary.'
+    toast.add({
+      severity: 'error',
+      summary: 'Embedding failed',
       detail: error.value,
       life: 5000,
     })
@@ -102,25 +168,35 @@ async function summarizeChapter() {
   letter-spacing: 0.02em;
 }
 
-.summarize-chapter {
-  flex: 0 0 auto;
-  margin-left: auto;
-  padding: 10px 18px;
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.78);
+.ai-scan {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 999px;
-  background:
-    radial-gradient(circle at 28% 18%, rgba(255, 255, 255, 0.5), transparent 42%),
-    rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.summarize-chapter,
+.embed-chapter {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px 10px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.88);
   box-shadow:
-    0 6px 18px rgba(0, 0, 0, 0.18),
-    0 0 16px rgba(255, 255, 255, 0.12),
-    inset 0 1px 5px rgba(255, 255, 255, 0.42);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+    0 6px 18px rgba(0, 0, 0, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  color: #242629;
   font: inherit;
-  font-size: 0.88rem;
-  font-weight: 600;
+  font-size: 0.85rem;
+  font-weight: 700;
   white-space: nowrap;
   cursor: pointer;
   transition:
@@ -129,18 +205,51 @@ async function summarizeChapter() {
     box-shadow 0.2s ease;
 }
 
-.summarize-chapter:not(:disabled):hover {
+.summarize-chapter:not(:disabled):hover,
+.embed-chapter:not(:disabled):hover {
   transform: translateY(-2px);
-  background-color: rgba(255, 255, 255, 0.3);
+  background: #fff;
   box-shadow:
     0 9px 22px rgba(0, 0, 0, 0.22),
-    0 0 20px rgba(255, 255, 255, 0.2),
-    inset 0 1px 5px rgba(255, 255, 255, 0.52);
+    0 0 18px rgba(255, 255, 255, 0.18);
 }
 
-.summarize-chapter:focus-visible {
+.summarize-chapter:focus-visible,
+.embed-chapter:focus-visible {
   outline: 2px solid #fff;
   outline-offset: 3px;
+}
+
+.ai-scan-next {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ai-scan-next__arrow {
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.embed-chapter__step {
+  display: grid;
+  width: 23px;
+  height: 23px;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(36, 38, 41, 0.1);
+  font-size: 0.74rem;
+}
+
+.summarize-chapter:disabled,
+.embed-chapter:disabled {
+  cursor: wait;
+  opacity: 0.65;
 }
 
 .ai-summarization {
@@ -186,21 +295,35 @@ async function summarizeChapter() {
 @media (max-width: 480px) {
   .panel-header {
     gap: 10px;
-    padding: 0 14px;
+    flex-wrap: wrap;
+    padding: 10px 14px;
+  }
+
+  .ai-scan {
+    width: 100%;
+    justify-content: center;
+    gap: 8px;
+    padding: 6px;
   }
 
   .panel-header h2 {
     font-size: 0.9rem;
   }
 
-  .summarize-chapter {
+  .summarize-chapter,
+  .embed-chapter {
     padding: 9px 12px;
     font-size: 0.8rem;
+  }
+
+  .ai-scan-next {
+    font-size: 0.65rem;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .summarize-chapter {
+  .summarize-chapter,
+  .embed-chapter {
     transition: none;
   }
 }

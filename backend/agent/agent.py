@@ -59,12 +59,11 @@ async def search_novel_memory(
 
 summary_agent = Agent(
     model="groq:openai/gpt-oss-120b",
-    instructions="You are a summary agent. You will summarize large novel chapter or text into short summary not more than 500 words. The summary should contain useful info from the large text."
+    instructions="Your work is to summarize large novel chapter into smaller piece of info for efficient RAG search. the summarization should between 100-200 words"
 )
 
 # Embedding model and its  settings
 settings = EmbeddingSettings(dimensions=768)
-
 model = GoogleEmbeddingModel(
     "gemini-embedding-2",
     settings=settings
@@ -100,7 +99,7 @@ async def get_embeddings(text:str):
     
     print("Getting embeddings...")
     try:
-        embeddings = await embedding_agent.embed_query(text)
+        embeddings = await embedding_agent.embed_query(text.strip())
         print("Done getting embeddings.")
         return embeddings.embeddings[0]
     except Exception as e:
