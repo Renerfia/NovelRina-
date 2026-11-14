@@ -36,22 +36,21 @@ router.beforeEach((to, from, next) => {
   const { isLoggedIn, loading } = useAuth()
 
   if (loading.value) {
-    // Wait for the loading state to finish before proceeding
-    const unwatch = watch(loading, (newLoading) => {
-      if (!newLoading) {
-        unwatch() // Stop watching after loading is done
+    const unwatch = watch(loading, (isLoading) => {
+      if (!isLoading) {
+        unwatch()
         proceed()
       }
     })
   } else {
     proceed()
   }
-  //proceed to home
+
   function proceed() {
     if (to.meta.requiresAuth && !isLoggedIn.value) {
-      next({ name: 'home' }) // Redirect to home if not logged in
+      next({ name: 'home' })
     } else {
-      next() // Proceed to the route
+      next()
     }
   }
 })

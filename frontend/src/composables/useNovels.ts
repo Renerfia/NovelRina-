@@ -124,11 +124,47 @@ export function useNovels() {
     }
   }
 
+  async function updateNovel(novel_id: string, novel_name?: string, description?: string) {
+    loading.value = true
+    error.value = null
+
+    try {
+      const { data, error: updateError } = await supabase
+        .from('novels')
+        .update({ novel_name, description })
+        .eq('novel_id', novel_id)
+        .select()
+        .single()
+
+      if (updateError) {
+        console.error('Failed to update novel:', updateError.message)
+        error.value = updateError.message
+        return { data: null, error: updateError.message }
+      }
+
+      //finding the index of the old novel
+      const index = novels.value.findIndex((novel) => novel.novel_id === novel_id)
+      if (index !== -1) {
+        novels.value[index] = data //updates the old novel with new data. data contains updated novel
+      }
+
+      return { data, error: null }
+    } catch (caughtError) {
+      const message = caughtError instanceof Error ? caughtError.message : 'Failed to update novel'
+      console.error('Failed to update novel:', message)
+      error.value = message
+      return { data: null, error: message }
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     fetchNovels,
     fetchNovel,
     createNovel,
     deleteNovel,
+    updateNovel,
     novels,
     loading,
     error,
